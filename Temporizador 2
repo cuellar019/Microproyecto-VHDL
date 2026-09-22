@@ -1,3 +1,4 @@
+
 end entity;
 	
 architecture behavioral of cronometro_un_boton is
@@ -91,4 +92,42 @@ U2: deco port map (A => minutos, d => min);
 U3: deco port map (A => decenas, d => seg_dec);
 U4: deco port map (A => unidades, d => seg_uni);
 
+end behavioral;
+
+
+"divisor de frecuencia"
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+entity divisor_frecuencia is
+	Port (
+	reloj_entrada : in STD_LOGIC;
+	reloj_salida : out STD_LOGIC
+	
+	);
+end entity;
+
+architecture behavioral of divisor_frecuencia is 
+
+	signal contador : std_logic_vector (24 downto 0) := (others => '0');
+	signal estado_final : std_LOGIC := '0';
+	begin
+	process (reloj_entrada)
+	begin
+	if rising_edge(reloj_entrada) then
+		
+		if contador = 25000000 then 
+			estado_final <= not estado_final;
+			contador <= (others => '0'); 
+		else 
+			contador <= contador + 1;
+		end if;
+	end if;
+	end process;
+	
+	reloj_salida <= estado_final;
+		
 end behavioral;
