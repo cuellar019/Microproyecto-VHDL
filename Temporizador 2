@@ -95,7 +95,11 @@ U4: deco port map (A => unidades, d => seg_uni);
 end behavioral;
 
 
+
+
 "divisor de frecuencia"
+
+
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -131,3 +135,41 @@ architecture behavioral of divisor_frecuencia is
 	reloj_salida <= estado_final;
 		
 end behavioral;
+
+
+
+
+"decodificador para el display 7 segmentos"
+
+
+
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.STD_LOGIC_ARITH.ALL;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
+entity deco is port (
+    A: in integer range 0 to 9; 
+    d: out std_logic_vector(6 downto 0)
+);
+end deco;
+
+architecture arqdeco of deco is
+begin
+    process (A) begin
+        case A is
+            when 0 => d <= "0000001"; 
+            when 1 => d <= "1001111";
+            when 2 => d <= "0010010";
+            when 3 => d <= "0000110";
+            when 4 => d <= "1001100";
+            when 5 => d <= "0100100";
+            when 6 => d <= "0100000";
+            when 7 => d <= "0001110";
+            when 8 => d <= "0000000";
+            when 9 => d <= "0000100";
+            when others => d <= "1111111"; 
+        end case;
+    end process;
+end arqdeco;
