@@ -1,0 +1,15 @@
+end entity;
+	
+architecture behavioral of cronometro_un_boton is
+
+component divisor_frecuencia
+        Port (
+		  reloj_entrada : in STD_LOGIC;
+		  reloj_salida : out STD_LOGIC );
+    end component;
+	
+	   component deco
+        Port (
+		  A : in integer range 0 to 9;
+		  d : out STD_LOGIC_VECTOR(6 downto 0) );
+    end component;
