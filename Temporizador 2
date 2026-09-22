@@ -13,3 +13,82 @@ component divisor_frecuencia
 		  A : in integer range 0 to 9;
 		  d : out STD_LOGIC_VECTOR(6 downto 0) );
     end component;
+signal clk_1Hz : std_logic;
+signal run : std_logic := '0';
+signal unidades, decenas, minutos : integer 	range 0 to 9 :=0;
+signal reset_interno : std_logic := '0';
+signal boton_previo : std_logic := '0';
+signal tiempo_presion : integer range 0 to 100000000 := 0;
+
+begin 
+
+
+PROCESO_CONTROL : process (clk_fpga)
+
+begin
+if rising_edge (clk_fpga) then 
+
+	if boton_previo = '0' and boton = '1' then 
+	run <= not run; 
+	end if; 
+
+	if boton = '1' then 
+		if tiempo_presion < 100000000 then
+		tiempo_presion <= tiempo_presion + 1;
+		reset_interno <= '0';
+		else
+		run <= '0';
+		reset_interno <= '1';
+		end if;
+	else
+	tiempo_presion <= 0;
+	reset_interno <= '0';
+	end if; 
+	boton_previo <= boton;
+end if;
+end process;
+
+U1: divisor_frecuencia port map (
+        reloj_entrada => clk_fpga,
+        reloj_salida  => clk_1Hz
+    );
+	 
+PROCESO_CONTADOR : process (clk_1Hz, reset_interno) 	
+begin 
+	if reset_interno = '1' then
+		unidades <= 0;
+		decenas <= 0;
+		minutos <= 0;
+		
+	elsif rising_edge(clk_1Hz) then
+
+		if run = '1' then 
+
+	
+			if unidades = 9 then 
+				unidades <= 0;
+				
+				if decenas = 5 then
+					decenas <= 0;
+				
+					if minutos = 9 then
+						minutos <= 0;
+					
+					else 
+						minutos <= minutos + 1; 
+					end if;
+				else  
+					decenas <= decenas + 1; 
+				end if;
+			else 
+				unidades <= unidades + 1; 
+			end if;
+		end if; 
+	end if; 
+end process;
+
+U2: deco port map (A => minutos, d => min);
+U3: deco port map (A => decenas, d => seg_dec);
+U4: deco port map (A => unidades, d => seg_uni);
+
+end behavioral;
