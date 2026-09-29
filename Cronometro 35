@@ -104,3 +104,62 @@ end behavioral;
 
 end behavioral;
 
+
+
+"contador extra"
+
+
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+
+entity contador_extra is
+
+    port(
+        clk      : in  std_logic;
+        reset    : in  std_logic;
+        enable   : in  std_logic;
+        pulso_1s : in  std_logic;
+
+        tiempo   : out integer range 0 to 999
+    );
+
+end contador_extra;
+
+
+architecture behavioral of contador_extra is
+
+    signal contador : integer range 0 to 999 := 0;
+
+begin
+
+    process(clk)
+
+    begin
+
+        if rising_edge(clk) then
+
+            if reset = '1' then
+
+                contador <= 0;
+
+            elsif enable = '1' and pulso_1s = '1' then
+
+                if contador < 999 then
+
+                    contador <= contador + 1;
+
+                end if;
+
+            end if;
+
+        end if;
+
+    end process;
+
+
+    tiempo <= contador;
+
+end behavioral;
