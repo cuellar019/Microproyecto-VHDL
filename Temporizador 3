@@ -1,6 +1,6 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
-
+use IEEE.numeric_std.all;
 
 entity temporizador_un_boton is
 
@@ -172,3 +172,110 @@ begin
 
 
 end structural;
+
+
+
+
+
+"contador_tiempo" 
+
+
+
+
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+
+entity contador_tiempo is
+
+    port(
+
+        clk      : in std_logic;
+        enable   : in std_logic;
+        reset    : in std_logic;
+
+        unidades : out integer range 0 to 9;
+        decenas  : out integer range 0 to 5;
+        minutos  : out integer range 0 to 9
+
+    );
+
+end contador_tiempo;
+
+
+architecture behavioral of contador_tiempo is
+
+    signal uni : integer range 0 to 9 := 0;
+    signal dec : integer range 0 to 5 := 0;
+    signal min : integer range 0 to 9 := 0;
+
+begin
+
+
+    process(clk)
+
+    begin
+
+        if rising_edge(clk) then
+
+            if reset = '1' then
+
+                uni <= 0;
+                dec <= 0;
+                min <= 0;
+
+
+            elsif enable = '1' then
+
+                -- Incrementar segundos
+
+                if uni < 9 then
+
+                    uni <= uni + 1;
+
+
+                -- Pasar de 09 a 10 segundos
+
+                elsif dec < 5 then
+
+                    uni <= 0;
+                    dec <= dec + 1;
+
+
+                -- Pasar de 59 segundos al siguiente minuto
+
+                else
+
+                    uni <= 0;
+                    dec <= 0;
+
+                    if min < 9 then
+
+                        min <= min + 1;
+
+                    else
+
+                        min <= 0;
+
+                    end if;
+
+                end if;
+
+            end if;
+
+        end if;
+
+    end process;
+
+
+    unidades <= uni;
+
+    decenas <= dec;
+
+    minutos <= min;
+
+
+end behavioral;
+
