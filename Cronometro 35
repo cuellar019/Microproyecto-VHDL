@@ -277,3 +277,116 @@ begin
     reset_extra <= not tiempo_extra_activo;
 
 end behavioral;
+
+"prin"
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+
+entity principal is
+
+    port(
+        clk          : in std_logic;
+        reset        : in std_logic;
+
+        ingreso      : in std_logic;
+        salida       : in std_logic;
+
+        alarma       : out std_logic;
+        felicitacion : out std_logic;
+
+        tiempo_extra : out integer range 0 to 999
+    );
+
+end principal;
+
+
+architecture structural of principal is
+
+
+    signal pulso_1s : std_logic;
+
+    signal fin_35 : std_logic;
+
+    signal activar_35 : std_logic;
+    signal activar_extra : std_logic;
+
+    signal reset_35 : std_logic;
+    signal reset_extra : std_logic;
+
+
+begin
+
+
+    -- DIVISOR DE FRECUENCIA
+
+    U1 : entity work.divisor_1s
+
+        port map(
+
+            clk      => clk,
+            reset    => reset,
+            pulso_1s => pulso_1s
+
+        );
+
+
+    -- CONTADOR DE 35 SEGUNDOS
+
+    U2 : entity work.contador_35
+
+        port map(
+
+            clk      => clk,
+            reset    => reset_35,
+            enable   => activar_35,
+            pulso_1s => pulso_1s,
+            fin_35   => fin_35
+
+        );
+
+
+    -- CONTADOR DE TIEMPO EXTRA
+
+    U3 : entity work.contador_extra
+
+        port map(
+
+            clk      => clk,
+            reset    => reset_extra,
+            enable   => activar_extra,
+            pulso_1s => pulso_1s,
+            tiempo   => tiempo_extra
+
+        );
+
+
+    -- CONTROL
+
+    U4 : entity work.control
+
+        port map(
+
+            clk      => clk,
+            reset    => reset,
+
+            ingreso  => ingreso,
+            salida   => salida,
+
+            fin_35   => fin_35,
+
+            activar_35    => activar_35,
+            activar_extra => activar_extra,
+
+            reset_35    => reset_35,
+            reset_extra => reset_extra,
+
+            alarma       => alarma,
+            felicitacion => felicitacion
+
+        );
+
+
+end structural;
