@@ -351,3 +351,186 @@ begin
     end process;
 
 end behavioral;
+
+
+
+
+"temporizador_un_boton"
+
+
+
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+
+entity temporizador_un_boton is
+
+    port(
+
+        clk_1Hz : in std_logic;
+        boton   : in std_logic;
+
+        seg_uni : out std_logic_vector(6 downto 0);
+        seg_dec : out std_logic_vector(6 downto 0);
+        min     : out std_logic_vector(6 downto 0)
+
+    );
+
+end temporizador_un_boton;
+
+
+architecture structural of temporizador_un_boton is
+
+
+    component detector_boton
+
+        port(
+
+            clk         : in std_logic;
+            boton       : in std_logic;
+
+            pulso       : out std_logic;
+            reset_largo : out std_logic
+
+        );
+
+    end component;
+
+
+    component contador_tiempo
+
+        port(
+
+            clk      : in std_logic;
+            enable   : in std_logic;
+            reset    : in std_logic;
+
+            unidades : out integer range 0 to 9;
+            decenas  : out integer range 0 to 5;
+            minutos  : out integer range 0 to 9
+
+        );
+
+    end component;
+
+
+    component deco
+
+        port(
+
+            A : in integer range 0 to 9;
+            d : out std_logic_vector(6 downto 0)
+
+        );
+
+    end component;
+
+
+    signal pulso_boton : std_logic;
+
+    signal reset_auto : std_logic;
+
+    signal funcionando : std_logic := '0';
+
+
+    signal uni : integer range 0 to 9;
+
+    signal dec : integer range 0 to 5;
+
+    signal minu : integer range 0 to 9;
+
+
+begin
+
+
+    -- DETECTOR DEL BOTÓN
+
+    B1 : detector_boton
+
+        port map(
+
+            clk         => clk_1Hz,
+            boton       => boton,
+            pulso       => pulso_boton,
+            reset_largo => reset_auto
+
+        );
+
+
+    -- CONTROL DE ARRANQUE Y PARADA
+
+    process(clk_1Hz)
+
+    begin
+
+        if rising_edge(clk_1Hz) then
+
+            if reset_auto = '1' then
+
+                funcionando <= '0';
+
+            elsif pulso_boton = '1' then
+
+                funcionando <= not funcionando;
+
+            end if;
+
+        end if;
+
+    end process;
+
+
+    -- CONTADOR DE TIEMPO
+
+    C1 : contador_tiempo
+
+        port map(
+
+            clk      => clk_1Hz,
+            enable   => funcionando,
+            reset    => reset_auto,
+            unidades => uni,
+            decenas  => dec,
+            minutos  => minu
+
+        );
+
+
+    -- DECODIFICADOR DE UNIDADES
+
+    D1 : deco
+
+        port map(
+
+            A => uni,
+            d => seg_uni
+
+        );
+
+
+    -- DECODIFICADOR DE DECENAS
+
+    D2 : deco
+
+        port map(
+
+            A => dec,
+            d => seg_dec
+
+        );
+
+
+    -- DECODIFICADOR DE MINUTOS
+
+    D3 : deco
+
+        port map(
+
+            A => minu,
+            d => min
+
+        );
+
+
+end structural;
