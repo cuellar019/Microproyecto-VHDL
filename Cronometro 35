@@ -163,3 +163,117 @@ begin
     tiempo <= contador;
 
 end behavioral;
+
+
+"control"
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+
+entity control is
+
+    port(
+        clk      : in std_logic;
+        reset    : in std_logic;
+
+        ingreso  : in std_logic;
+        salida   : in std_logic;
+
+        fin_35   : in std_logic;
+
+        activar_35    : out std_logic;
+        activar_extra : out std_logic;
+
+        reset_35      : out std_logic;
+        reset_extra   : out std_logic;
+
+        alarma        : out std_logic;
+        felicitacion  : out std_logic
+    );
+
+end control;
+
+
+architecture behavioral of control is
+
+    signal ocupado : std_logic := '0';
+
+    signal tiempo_extra_activo : std_logic := '0';
+
+begin
+
+    process(clk)
+
+    begin
+
+        if rising_edge(clk) then
+
+            if reset = '1' then
+
+                ocupado <= '0';
+                tiempo_extra_activo <= '0';
+
+            else
+
+                -- Entrada de una persona
+                if ingreso = '1' and ocupado = '0' then
+
+                    ocupado <= '1';
+                    tiempo_extra_activo <= '0';
+
+                end if;
+
+
+                -- Salida antes de los 35 segundos
+                if salida = '1' and ocupado = '1' and fin_35 = '0' then
+
+                    ocupado <= '0';
+                    tiempo_extra_activo <= '0';
+
+                end if;
+
+
+                -- Se cumplen los 35 segundos
+                if fin_35 = '1' and ocupado = '1' then
+
+                    tiempo_extra_activo <= '1';
+
+                end if;
+
+
+                -- Salida después de los 35 segundos
+                if salida = '1' and tiempo_extra_activo = '1' then
+
+                    ocupado <= '0';
+                    tiempo_extra_activo <= '0';
+
+                end if;
+
+            end if;
+
+        end if;
+
+    end process;
+
+
+    activar_35 <= ocupado and not tiempo_extra_activo;
+
+
+    activar_extra <= tiempo_extra_activo;
+
+
+    alarma <= tiempo_extra_activo;
+
+
+    felicitacion <= '1' when salida = '1' and ocupado = '1' and fin_35 = '0'
+                    else '0';
+
+
+    reset_35 <= not ocupado;
+
+
+    reset_extra <= not tiempo_extra_activo;
+
+end behavioral;
