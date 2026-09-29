@@ -279,3 +279,75 @@ begin
 
 end behavioral;
 
+
+
+
+"deco"
+
+
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+
+
+entity deco is
+
+    port(
+
+        A : in integer range 0 to 9;
+
+        d : out std_logic_vector(6 downto 0)
+
+    );
+
+end deco;
+
+
+architecture behavioral of deco is
+
+begin
+
+    process(A)
+
+    begin
+
+        case A is
+
+            when 0 =>
+                d <= "1111110";
+
+            when 1 =>
+                d <= "0110000";
+
+            when 2 =>
+                d <= "1101101";
+
+            when 3 =>
+                d <= "1111001";
+
+            when 4 =>
+                d <= "0110011";
+
+            when 5 =>
+                d <= "1011011";
+
+            when 6 =>
+                d <= "1011111";
+
+            when 7 =>
+                d <= "1110000";
+
+            when 8 =>
+                d <= "1111111";
+
+            when 9 =>
+                d <= "1111011";
+
+            when others =>
+                d <= "0000000";
+
+        end case;
+
+    end process;
+
+end behavioral;
