@@ -1,0 +1,50 @@
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+entity divisor_1s is
+
+    port(
+        clk      : in  std_logic;
+        reset    : in  std_logic;
+        pulso_1s : out std_logic
+    );
+
+end divisor_1s;
+
+
+architecture behavioral of divisor_1s is
+
+    signal contador : integer range 0 to 49999999 := 0;
+
+begin
+
+    process(clk)
+
+    begin
+
+        if rising_edge(clk) then
+
+            if reset = '1' then
+
+                contador <= 0;
+
+            elsif contador = 49999999 then
+
+                contador <= 0;
+
+            else
+
+                contador <= contador + 1;
+
+            end if;
+
+        end if;
+
+    end process;
+
+
+    pulso_1s <= '1' when contador = 49999999 else '0';
+
+end behavioral;
+
