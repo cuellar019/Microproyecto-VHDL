@@ -1,30 +1,335 @@
-# -------------------------------------------------------------------------- #
-#
-# Copyright (C) 1991-2013 Altera Corporation
-# Your use of Altera Corporation's design tools, logic functions 
-# and other software and tools, and its AMPP partner logic 
-# functions, and any output files from any of the foregoing 
-# (including device programming or simulation files), and any 
-# associated documentation or information are expressly subject 
-# to the terms and conditions of the Altera Program License 
-# Subscription Agreement, Altera MegaCore Function License 
-# Agreement, or other applicable license agreement, including, 
-# without limitation, that your use is for the sole purpose of 
-# programming logic devices manufactured by Altera and sold by 
-# Altera or its authorized distributors.  Please refer to the 
-# applicable agreement for further details.
-#
-# -------------------------------------------------------------------------- #
-#
-# Quartus II 64-Bit
-# Version 13.1.0 Build 162 10/23/2013 SJ Web Edition
-# Date created = 12:22:43  October 06, 2026
-#
-# -------------------------------------------------------------------------- #
+--top temporizador
 
-QUARTUS_VERSION = "13.1"
-DATE = "12:22:43  October 06, 2026"
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
 
-# Revisions
+entity top_temporizador is
 
-PROJECT_REVISION = "temporizador"
+   port(
+
+      -- Reloj físico de la FPGA
+      CLOCK_50 : in std_logic;
+
+      -- Controles
+      arranque : in std_logic;
+      parada   : in std_logic;
+      reinicio : in std_logic;
+
+      -- Displays de 7 segmentos
+      seg_uni : out std_logic_vector(6 downto 0);
+      seg_dec : out std_logic_vector(6 downto 0);
+      min     : out std_logic_vector(6 downto 0);
+		punto_2 : out std_logic
+
+   );
+
+end entity top_temporizador;
+
+
+architecture structural of top_temporizador is
+
+   -- Señal interna de 1 Hz
+   signal clk_1Hz : std_logic;
+
+begin
+	
+	punto_2 <= '0'; -- punto encendido
+
+   -- DIVISOR DE FRECUENCIA
+   divisor : entity work.divisor_1Hz
+      port map(
+         clk_50MHz => CLOCK_50,
+         clk_1Hz   => clk_1Hz
+      );
+
+
+   -- TEMPORIZADOR
+   temporizador_principal : entity work.temporizador
+      port map(
+         clk_1Hz  => clk_1Hz,
+         arranque => arranque,
+         parada   => parada,
+         reinicio => reinicio,
+         seg_uni  => seg_uni,
+         seg_dec  => seg_dec,
+         min      => min
+      );
+
+end architecture structural;
+
+--divisor de fr
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+entity divisor_1Hz is
+    port(
+        clk_50MHz : in  std_logic;
+        clk_1Hz   : out std_logic
+    );
+end entity divisor_1Hz;
+
+
+architecture behavioral of divisor_1Hz is
+
+    signal contador : integer range 0 to 24999999 := 0;
+    signal reloj_1Hz : std_logic := '0';
+
+begin
+
+    process(clk_50MHz)
+    begin
+
+        if rising_edge(clk_50MHz) then
+
+            if contador = 24999999 then
+
+                contador <= 0;
+
+                if reloj_1Hz = '0' then
+                    reloj_1Hz <= '1';
+                else
+                    reloj_1Hz <= '0';
+                end if;
+
+            else
+
+                contador <= contador + 1;
+
+            end if;
+
+        end if;
+
+    end process;
+
+    clk_1Hz <= reloj_1Hz;
+
+end architecture behavioral;
+
+--contador
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.numeric_std.ALL;
+
+entity contador is
+    port(
+        clk_1Hz  : in  std_logic;
+        arranque : in  std_logic;
+        parada   : in  std_logic;
+        reinicio : in  std_logic;
+
+        unidades : out integer range 0 to 9;
+        decenas  : out integer range 0 to 5;
+        minutos  : out integer range 0 to 9
+    );
+end entity contador;
+
+
+architecture behavioral of contador is
+
+    signal run : std_logic := '0';
+
+    signal unidades_int : integer range 0 to 9 := 0;
+    signal decenas_int  : integer range 0 to 5 := 0;
+    signal minutos_int  : integer range 0 to 9 := 0;
+
+begin
+
+    proceso_contador : process(clk_1Hz)
+    begin
+
+        if rising_edge(clk_1Hz) then
+
+            -- REINICIO
+            if reinicio = '1' then
+
+                run          <= '0';
+                unidades_int <= 0;
+                decenas_int  <= 0;
+                minutos_int  <= 0;
+
+            -- ARRANQUE
+            elsif arranque = '1' then
+
+                run <= '1';
+
+            -- PARADA
+            elsif parada = '1' then
+
+                run <= '0';
+
+            -- CONTEO
+            elsif run = '1' then
+
+                -- Límite máximo: 09:59
+                if (minutos_int = 9) and
+                   (decenas_int = 5) and
+                   (unidades_int = 9) then
+
+                    run <= '0';
+
+                -- Incrementar unidades
+                elsif unidades_int < 9 then
+
+                    unidades_int <= unidades_int + 1;
+
+                -- Cuando unidades llega a 9
+                else
+
+                    unidades_int <= 0;
+
+                    -- Incrementar decenas
+                    if decenas_int < 5 then
+
+                        decenas_int <= decenas_int + 1;
+
+                    -- Cuando llegamos a 59 segundos
+                    else
+
+                        decenas_int <= 0;
+                        minutos_int <= minutos_int + 1;
+
+                    end if;
+
+                end if;
+
+            end if;
+
+        end if;
+
+    end process;
+
+
+    -- Conexión de las señales internas con las salidas
+    unidades <= unidades_int;
+    decenas  <= decenas_int;
+    minutos  <= minutos_int;
+
+end architecture behavioral;
+
+--decodificador
+
+library IEEE;
+use IEEE.std_logic_1164.all;
+use IEEE.numeric_std.all;
+entity deco is
+    port(
+        A : in  integer range 0 to 9;
+        d : out std_logic_vector(6 downto 0)
+    );
+end entity deco;
+
+
+architecture behavioral of deco is
+
+begin
+
+    process(A)
+    begin
+
+        case A is
+
+            when 0 =>
+                d <= "1000000";
+
+            when 1 =>
+                d <= "1111001";
+
+            when 2 =>
+                d <= "0100100";
+
+            when 3 =>
+                d <= "0110000";
+
+            when 4 =>
+                d <= "0011001";
+
+            when 5 =>
+                d <= "0010010";
+
+            when 6 =>
+                d <= "0000010";
+
+            when 7 =>
+                d <= "1111000";
+
+            when 8 =>
+                d <= "0000000";
+
+            when 9 =>
+                d <= "0010000";
+
+            when others =>
+                d <= "1111111";
+
+        end case;
+
+    end process;
+
+end architecture behavioral;
+
+--modulo principal del temporizador
+
+library IEEE;
+use IEEE.std_logic_1164.ALL;
+use IEEE.numeric_std.ALL;
+
+entity temporizador is
+   port(
+
+      clk_1Hz  :in std_logic;
+      arranque :in std_logic;
+      parada   :in std_logic;
+      reinicio :in std_logic;
+
+      seg_uni :out std_logic_vector(6 downto 0);
+      seg_dec :out std_logic_vector(6 downto 0);
+      min     :out std_logic_vector(6 downto 0)
+);
+
+end temporizador;
+
+architecture structural of temporizador is 
+
+     signal unidades : integer range 0 to 9; 
+	  signal decenas : integer range 0 to 5; 
+	  signal minutos : integer range 0 to 9;
+	  
+begin
+  
+     contador_principal : entity work.contador
+	  port map( 
+	  
+	  clk_1Hz => clk_1Hz, 
+	  arranque => arranque, 
+	  parada => parada, 
+	  reinicio => reinicio, 
+	  unidades => unidades, 
+	  decenas => decenas, 
+	  minutos => minutos 
+	  
+	  );
+	  
+	  display_unidades : entity work.deco
+        port map(
+            A => unidades,
+            d => seg_uni
+        );
+
+
+    display_decenas : entity work.deco
+        port map(
+            A => decenas,
+            d => seg_dec
+        );
+
+
+    display_minutos : entity work.deco
+        port map(
+            A => minutos,
+            d => min
+        );
+
+end architecture;
