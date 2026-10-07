@@ -1,1 +1,303 @@
+--modulo principal
 
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+entity Vhdl4temporizador_un_boton is
+    port(
+        CLOCK_50 : in std_logic;
+        boton    : in std_logic;
+        seg_uni  : out std_logic_vector(6 downto 0);
+        seg_dec  : out std_logic_vector(6 downto 0);
+        min      : out std_logic_vector(6 downto 0)
+		  
+    );
+	 
+end Vhdl4temporizador_un_boton;
+
+architecture structural of Vhdl4temporizador_un_boton is
+
+    component detector_boton
+        port(
+            clk         : in std_logic;
+            boton       : in std_logic;
+            pulso       : out std_logic;
+            reset_largo : out std_logic
+        );
+    end component;
+
+    component contador_tiempo
+        port(
+            clk      : in std_logic;
+            enable   : in std_logic;
+            reset    : in std_logic;
+            unidades : out integer range 0 to 9;
+            decenas  : out integer range 0 to 2;
+            minutos  : out integer range 0 to 9
+        );
+    end component;
+
+    component deco
+        port(
+            A : in integer range 0 to 9;
+            d : out std_logic_vector(6 downto 0)
+        );
+    end component;
+
+--divisor fr
+
+    signal contador_div : integer range 0 to 24999999 := 0;
+    signal clk_1Hz      : std_logic := '0';
+
+    signal pulso_boton : std_logic;
+    signal reset_auto  : std_logic;
+    signal funcionando : std_logic := '0';
+
+    signal uni  : integer range 0 to 9;
+    signal dec  : integer range 0 to 2;
+    signal minu : integer range 0 to 9;
+
+begin
+
+
+    process(CLOCK_50)
+    begin
+        if rising_edge(CLOCK_50) then
+            if contador_div = 24999999 then
+                contador_div <= 0;
+                clk_1Hz <= not clk_1Hz;
+            else
+                contador_div <= contador_div + 1;
+            end if;
+        end if;
+    end process;
+
+--detector deun boton
+
+    B1 : detector_boton
+        port map(
+            clk         => CLOCK_50,
+            boton       => boton,
+            pulso       => pulso_boton,
+            reset_largo => reset_auto
+        );
+
+--aranque, parada y frenado
+    process(CLOCK_50)
+	 
+    begin
+        if rising_edge(CLOCK_50) then
+		  
+		  if reset_auto = '1' then 
+		  
+				funcionando <= '0';
+				
+            elsif pulso_boton = '1' then 
+				
+				funcionando <= not funcionando;
+				
+            end if;
+        end if;
+    end process;
+
+--contador 
+
+    C1 : contador_tiempo
+        port map(
+            clk      => clk_1Hz,
+            enable   => funcionando,
+            reset    => reset_auto,
+            unidades => uni,
+            decenas  => dec,
+            minutos  => minu
+        );
+
+    D1 : deco port map(A => uni,  d => seg_uni);
+    D2 : deco port map(A => dec,  d => seg_dec);
+    D3 : deco port map(A => minu, d => min);
+
+end structural;
+
+--boton
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+entity detector_boton is
+    port(
+        clk         : in  std_logic;
+        boton       : in  std_logic;
+        pulso       : out std_logic;
+        reset_largo : out std_logic
+    );
+end detector_boton;
+
+architecture behavioral of detector_boton is
+
+    signal boton_anterior : std_logic := '1';
+
+    --se pulsa 2s se reinicia
+    signal contador_largo : integer range 0 to 100000000 := 0;
+    signal reset_int      : std_logic := '0';
+
+begin
+
+    process(clk)
+    begin
+        if rising_edge(clk) then
+
+            pulso <= '0';
+
+--detecta un solo pulso
+
+            if boton = '0' and boton_anterior = '1' then
+                pulso <= '1';
+            end if;
+
+--detecta pulso de mas de 2s
+
+            if boton = '0' then
+                if contador_largo < 100000000 then
+                    contador_largo <= contador_largo + 1;
+                end if;
+
+                if contador_largo >= 99999999 then
+                    reset_int <= '1';
+                end if;
+            else
+                contador_largo <= 0;
+                reset_int <= '0';
+            end if;
+
+            boton_anterior <= boton;
+        end if;
+    end process;
+
+    reset_largo <= reset_int;
+
+end behavioral;
+
+--contador
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.numeric_std.ALL;
+
+
+entity contador_tiempo is
+
+    port(
+
+        clk      : in std_logic;
+        enable   : in std_logic;
+        reset    : in std_logic;
+        unidades : out integer range 0 to 9;
+        decenas  : out integer range 0 to 2;
+        minutos  : out integer range 0 to 9
+
+    );
+
+end contador_tiempo;
+
+
+architecture behavioral of contador_tiempo is
+
+    signal uni : integer range 0 to 9 := 0;
+    signal dec : integer range 0 to 2 := 0;
+    signal min : integer range 0 to 9 := 0;
+
+begin
+
+
+    process(clk)
+
+    begin
+
+        if rising_edge(clk) then
+
+            if reset = '1' then
+
+                uni <= 0;
+                dec <= 0;
+                min <= 0;
+
+
+            elsif enable = '1' then
+
+                if uni < 9 then
+
+                    uni <= uni + 1;
+
+                elsif dec < 2 then
+
+                    uni <= 0;
+                    dec <= dec + 1;
+
+                else
+
+                    uni <= 0;
+                    dec <= 0;
+
+                    if min < 9 then
+
+                        min <= min + 1;
+
+                    else
+
+                        min <= 0;
+
+                    end if;
+
+                end if;
+
+            end if;
+
+        end if;
+
+    end process;
+
+
+    unidades <= uni;
+
+    decenas <= dec;
+
+    minutos <= min;
+
+
+end behavioral;
+
+--decodificador 
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.numeric_std.all;
+
+entity deco is
+    port(
+        A : in integer range 0 to 9;
+        d : out std_logic_vector(6 downto 0)
+    );
+end deco;
+
+architecture behavioral of deco is
+begin
+
+    process(A)
+    begin
+        case A is
+            when 0 => d <= "1000000";
+            when 1 => d <= "1111001";
+            when 2 => d <= "0100100";
+            when 3 => d <= "0110000";
+            when 4 => d <= "0011001";
+            when 5 => d <= "0010010";
+            when 6 => d <= "0000010";
+            when 7 => d <= "1111000";
+            when 8 => d <= "0000000";
+            when 9 => d <= "0010000";
+            when others => d <= "1111111";
+        end case;
+    end process;
+end behavioral;
