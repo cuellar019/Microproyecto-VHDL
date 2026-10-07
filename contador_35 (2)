@@ -1,0 +1,631 @@
+--divisor_1s
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+
+--divisor 50mhz a 1s
+
+entity divisor_1s is
+    port(
+        clk      : in std_logic;
+        reset    : in std_logic;
+        pulso_1s : out std_logic
+    );
+end divisor_1s;
+
+
+architecture behavioral of divisor_1s is
+
+    signal contador : integer range 0 to 49999999 := 0;
+
+begin
+
+
+    process(clk)
+    begin
+
+        if rising_edge(clk) then
+
+            if reset = '1' then
+
+                contador <= 0;
+
+            elsif contador = 49999999 then
+
+                contador <= 0;
+
+            else
+
+                contador <= contador + 1;
+
+            end if;
+
+        end if;
+
+    end process;
+
+
+    pulso_1s <= '1'
+        when contador = 49999999
+        else '0';
+
+
+end behavioral;
+
+--contador_35s
+
+  library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+
+--contador 35s
+
+entity contador35 is
+    port(
+        clk      : in std_logic;
+        reset    : in std_logic;
+        enable   : in std_logic;
+        pulso_1s : in std_logic;
+        fin_35   : out std_logic;
+        tiempo   : out integer range 0 to 35
+    );
+end contador35;
+
+
+architecture behavioral of contador35 is
+
+    signal contador : integer range 0 to 35 := 0;
+
+begin
+
+
+    process(clk)
+    begin
+
+        if rising_edge(clk) then
+            if reset = '1' then
+
+                contador <= 0;
+
+            elsif enable = '1' and pulso_1s = '1' then
+                if contador < 35 then
+
+                    contador <= contador + 1;
+
+                end if;
+
+            end if;
+
+        end if;
+
+    end process;
+
+
+    --tiempo regla
+
+    fin_35 <= '1'
+        when contador = 35
+        else '0';
+
+    tiempo <= contador;
+
+
+end behavioral;
+
+--contador extra
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+
+--tiempo extra
+
+entity contador_extra is
+    port(
+        clk      : in std_logic;
+        reset    : in std_logic;
+        enable   : in std_logic;
+        pulso_1s : in std_logic;
+        tiempo   : out integer range 0 to 999
+    );
+end contador_extra;
+
+
+architecture behavioral of contador_extra is
+
+    signal contador : integer range 0 to 999 := 0;
+
+begin
+
+
+    process(clk)
+    begin
+
+        if rising_edge(clk) then
+            if reset = '1' then
+
+                contador <= 0;
+
+            elsif enable = '1' and pulso_1s = '1' then
+
+                if contador < 999 then
+
+                    contador <= contador + 1;
+
+                end if;
+
+            end if;
+
+        end if;
+
+    end process;
+
+
+    tiempo <= contador;
+
+
+end behavioral;
+
+--control
+
+  library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+
+entity control is
+    port(
+        clk      : in std_logic;
+        reset    : in std_logic;
+        ingreso  : in std_logic;
+        salida   : in std_logic;
+        fin_35   : in std_logic;
+        activar_35    : out std_logic;
+        activar_extra : out std_logic;
+        reset_35      : out std_logic;
+        reset_extra   : out std_logic;
+        alarma        : out std_logic;
+        felicitacion  : out std_logic
+    );
+end control;
+
+
+architecture behavioral of control is
+
+
+    signal ocupado     : std_logic := '0';
+    signal extra_activo : std_logic := '0';
+    signal felic_pulso : std_logic := '0';
+
+begin
+
+    process(clk)
+    begin
+
+        if rising_edge(clk) then
+
+            felic_pulso <= '0';
+
+
+            if reset = '1' then
+
+                ocupado      <= '0';
+                extra_activo <= '0';
+
+
+            elsif ocupado = '0' then
+
+                if ingreso = '1' then
+
+                    ocupado      <= '1';
+                    extra_activo <= '0';
+
+                end if;
+
+
+            --espacio ocupado
+
+            else
+
+                --tiempo extra
+
+                if extra_activo = '1' then
+					 
+                    if salida = '1' then
+
+                        ocupado      <= '0';
+                        extra_activo <= '0';
+
+                    end if;
+
+
+                else
+
+                    if salida = '1' then
+
+                        ocupado      <= '0';
+                        extra_activo <= '0';
+                        felic_pulso <= '1';
+
+
+                    elsif fin_35 = '1' then
+
+                        extra_activo <= '1';
+
+                    end if;
+
+                end if;
+
+            end if;
+
+        end if;
+
+    end process;
+
+--35s
+    activar_35 <= '1'
+        when ocupado = '1' and extra_activo = '0'
+        else '0';
+
+
+--extra 35s
+
+    activar_extra <= '1'
+        when extra_activo = '1'
+        else '0';
+
+
+    -- Alarma tiempo extra
+
+    alarma <= '1'
+        when extra_activo = '1'
+        else '0';
+
+
+    -- Pulso de felicitacion
+
+    felicitacion <= felic_pulso;
+
+
+
+    --reinicio libre
+
+    reset_35 <= '1'
+        when ocupado = '0'
+        else '0';
+
+
+    --extra rinicia
+
+    reset_extra <= '0'
+        when extra_activo = '1'
+        else '1';
+
+
+end behavioral;
+
+--modulo principal
+
+library IEEE;
+use IEEE.STD_LOGIC_1164.ALL;
+use IEEE.NUMERIC_STD.ALL;
+
+--principal
+
+entity Vhdl5prin is
+    port(
+        CLOCK_50 : in  std_logic;
+        BUTTON   : in  std_logic_vector(2 downto 0);
+
+        LEDG     : out std_logic_vector(9 downto 0);
+
+        HEX0_D   : out std_logic_vector(6 downto 0);
+        HEX1_D   : out std_logic_vector(6 downto 0);
+        HEX2_D   : out std_logic_vector(6 downto 0);
+        HEX3_D   : out std_logic_vector(6 downto 0)
+    );
+	 
+end Vhdl5prin;
+
+
+architecture structural of Vhdl5prin is
+
+    --señales
+
+    signal pulso_1s      : std_logic;
+    signal fin_35        : std_logic;
+    signal activar_35    : std_logic;
+    signal activar_extra : std_logic;
+    signal reset_35      : std_logic;
+    signal reset_extra   : std_logic;
+    signal alarma_s      : std_logic;
+    signal felic_pulso   : std_logic;
+
+    --tiempo
+
+    signal tiempo_35      : integer range 0 to 35 := 0;
+    signal tiempo_extra_s : integer range 0 to 999 := 0;
+    signal tiempo_mostrar : integer range 0 to 999 := 0;
+
+    -- BOTONES
+
+    signal b0_ff1, b0_ff2, b0_db, b0_prev : std_logic := '1';
+    signal b1_ff1, b1_ff2, b1_db, b1_prev : std_logic := '1';
+    signal b2_ff1, b2_ff2, b2_db, b2_prev : std_logic := '1';
+    signal db_cnt0 : integer range 0 to 999999 := 0;
+    signal db_cnt1 : integer range 0 to 999999 := 0;
+    signal db_cnt2 : integer range 0 to 999999 := 0;
+ 
+    -- PULSOS DE LOS BOTONES 
+
+    signal ingreso_pulso : std_logic;
+    signal salida_pulso  : std_logic;
+    signal reset_pulso   : std_logic;
+
+    -- FELICITACION
+
+    signal felic_led : std_logic := '0';
+    signal felic_seg : integer range 0 to 2 := 0;
+
+
+    signal centenas : integer range 0 to 9 := 0;
+    signal decenas  : integer range 0 to 9 := 0;
+    signal unidades : integer range 0 to 9 := 0;
+
+
+	 
+    function a_7seg(d : integer) return std_logic_vector is
+    begin
+
+        case d is
+
+            when 0 => return "1000000";
+            when 1 => return "1111001";
+            when 2 => return "0100100";
+            when 3 => return "0110000";
+            when 4 => return "0011001";
+            when 5 => return "0010010";
+            when 6 => return "0000010";
+            when 7 => return "1111000";
+            when 8 => return "0000000";
+            when 9 => return "0010000";
+
+            when others =>
+                return "1111111";
+
+        end case;
+
+    end function;
+
+
+begin
+
+    process(CLOCK_50)
+    begin
+
+        if rising_edge(CLOCK_50) then
+
+            b0_ff1 <= BUTTON(0);
+            b0_ff2 <= b0_ff1;
+
+            b1_ff1 <= BUTTON(1);
+            b1_ff2 <= b1_ff1;
+
+            b2_ff1 <= BUTTON(2);
+            b2_ff2 <= b2_ff1;
+
+--antirebotes botones
+
+            if b0_ff2 = b0_db then
+
+                db_cnt0 <= 0;
+
+            elsif db_cnt0 = 999999 then
+
+                b0_db <= b0_ff2;
+                db_cnt0 <= 0;
+
+            else
+
+                db_cnt0 <= db_cnt0 + 1;
+
+            end if;
+
+
+
+            if b1_ff2 = b1_db then
+
+                db_cnt1 <= 0;
+
+            elsif db_cnt1 = 999999 then
+
+                b1_db <= b1_ff2;
+                db_cnt1 <= 0;
+
+            else
+
+                db_cnt1 <= db_cnt1 + 1;
+
+            end if;
+
+
+
+            if b2_ff2 = b2_db then
+
+                db_cnt2 <= 0;
+
+            elsif db_cnt2 = 999999 then
+
+                b2_db <= b2_ff2;
+                db_cnt2 <= 0;
+
+            else
+
+                db_cnt2 <= db_cnt2 + 1;
+
+            end if;
+
+
+            -- Guardamos el valor anterior
+            b0_prev <= b0_db;
+            b1_prev <= b1_db;
+            b2_prev <= b2_db;
+
+        end if;
+
+    end process;
+	 
+
+    --ingreso
+    ingreso_pulso <= '1'
+        when b0_prev = '1' and b0_db = '0'
+        else '0';
+
+
+    --salida
+    salida_pulso <= '1'
+        when b1_prev = '1' and b1_db = '0'
+        else '0';
+
+
+    --reset
+    reset_pulso <= '1'
+        when b2_prev = '1' and b2_db = '0'
+        else '0';
+
+
+    --divisor fr
+
+    U1 : entity work.divisor_1s
+
+        port map(
+            clk      => CLOCK_50,
+            reset    => reset_pulso,
+            pulso_1s => pulso_1s
+        );
+
+
+    --35 segundos
+
+    U2 : entity work.contador35
+
+        port map(
+            clk      => CLOCK_50,
+            reset    => reset_35,
+            enable   => activar_35,
+            pulso_1s => pulso_1s,
+            fin_35   => fin_35,
+            tiempo   => tiempo_35
+        );
+
+
+    --extra
+
+    U3 : entity work.contador_extra
+
+        port map(
+            clk      => CLOCK_50,
+            reset    => reset_extra,
+            enable   => activar_extra,
+            pulso_1s => pulso_1s,
+            tiempo   => tiempo_extra_s
+        );
+
+
+
+    U4 : entity work.control
+
+        port map(
+            clk           => CLOCK_50,
+            reset         => reset_pulso,
+
+            ingreso       => ingreso_pulso,
+            salida        => salida_pulso,
+
+            fin_35        => fin_35,
+
+            activar_35    => activar_35,
+            activar_extra => activar_extra,
+
+            reset_35      => reset_35,
+            reset_extra   => reset_extra,
+
+            alarma        => alarma_s,
+            felicitacion  => felic_pulso
+        );
+
+
+    process(CLOCK_50)
+    begin
+
+        if rising_edge(CLOCK_50) then
+
+            if reset_pulso = '1' then
+
+                felic_led <= '0';
+                felic_seg <= 0;
+
+            elsif felic_pulso = '1' then
+
+                felic_led <= '1';
+                felic_seg <= 2;
+
+            elsif pulso_1s = '1' and felic_led = '1' then
+
+                if felic_seg <= 1 then
+
+                    felic_led <= '0';
+                    felic_seg <= 0;
+
+                else
+
+                    felic_seg <= felic_seg - 1;
+
+                end if;
+
+            end if;
+
+        end if;
+
+    end process;
+
+
+    --se muestra E si se pasa de 35 segundos
+
+    tiempo_mostrar <= tiempo_extra_s
+        when activar_extra = '1'
+        else tiempo_35;
+
+
+
+    centenas <= tiempo_mostrar / 100;
+
+    decenas <= (tiempo_mostrar / 10) mod 10;
+
+    unidades <= tiempo_mostrar mod 10;
+
+
+
+    HEX0_D <= a_7seg(unidades);
+
+    HEX1_D <= a_7seg(decenas);
+
+    HEX2_D <= a_7seg(centenas);
+
+    HEX3_D <= "0000110"
+        when activar_extra = '1'
+        else "1111111";
+
+
+    LEDG(0) <= alarma_s;
+
+    LEDG(1) <= felic_led;
+
+    LEDG(2) <= activar_35 or activar_extra;
+
+    LEDG(9 downto 3) <= (others => '0');
+
+
+end structural;
